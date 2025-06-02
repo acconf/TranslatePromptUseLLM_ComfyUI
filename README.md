@@ -2,7 +2,6 @@
 
 Base on  
 ** ComfyUI: Ver 0.3.39. **  
-** Bootstrap 5.3 **  
 
 ## Description
 Minimal & Simple extention for ComfyUI.
@@ -10,7 +9,7 @@ Using LLM to translate prompt into English.
 Default Using Model [Google gemini-2.0-flash].
 Should SETUP API-KEY in [translate_config.json] FIRST!.
 
-screenshot ![theme screenshot](screenshot.png "Acconf-theme for Grav CMS")
+screenshot ![theme screenshot](screenshot.png "Screen Shot")
 
 
 ## MEMO

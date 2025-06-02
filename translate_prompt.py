@@ -1,6 +1,8 @@
 import os
 import json
+import re
 import requests
+from .prompt_template import (TRANSLATE_PROMPT)
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "translate_config.json")
 
@@ -11,15 +13,11 @@ def load_config():
     return {
         "api_key": "",
         "model": "gemini-2.0-flash",
-        "api_base": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "target_lang": "en",
-        "system_prompt_zh": "你是一个专业的翻译助手，只返回翻译后的文本，不添加任何解释。",
-        "user_prompt_zh": "请将以下文本翻译成{target_lang}：\n{text}"
+        "api_base": "https://generativelanguage.googleapis.com/v1beta/openai"
     }
 
 class TranslatePrompt:
     def __init__(self):
-        self.FROM_LANG = "zh"
         pass
 
     @classmethod
@@ -28,6 +26,8 @@ class TranslatePrompt:
             "required": {
                 "positive_prompt": ("STRING", {"multiline": True}),
                 "negative_prompt": ("STRING", {"multiline": True}),
+                "source_lang":(["zh","ja"],
+                                {"default": "zh", "label": "Source Language"}),
             }
         }
 
@@ -36,21 +36,30 @@ class TranslatePrompt:
     FUNCTION = "translate"
     CATEGORY = "utils"
 
-    def gpt_translate(self, text, config):
-        if not text.strip():
-            return ""
+    def llm_translate(self, text1, text2, config, source_lang="zh"):
+        
+        if not text2.strip():
+            text2 = "Blurry, Noisy, Distorted"
+
+        if not text1.strip():
+            return (text1, text2)
 
         headers = {
             "Authorization": f"Bearer {config['api_key']}",
             "Content-Type": "application/json"
         }
-        user_prompt = config.get("user_prompt_" + self.FROM_LANG, "")
-        user_prompt = user_prompt.replace('{target_lang}', config['target_lang'])
-        user_prompt = user_prompt.replace('{text}', text)
+
+        system_prompt = TRANSLATE_PROMPT.format(SOURCE_LANG=source_lang)
+        user_prompt_json = {
+            "positive_prompt": text1,
+            "negative_prompt": text2
+        }
+        user_prompt = json.dumps(user_prompt_json, ensure_ascii=False)
+
         payload = {
             "model": config["model"],
             "messages": [
-                {"role": "system", "content": f"{config['system_prompt_' + self.FROM_LANG]}"},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt }
             ],
             "temperature": 0
@@ -65,17 +74,20 @@ class TranslatePrompt:
             )
             response.raise_for_status()
             result = response.json()
-            return result["choices"][0]["message"]["content"].strip()
+            raw = result["choices"][0]["message"]["content"].strip()
+            cleaned = re.sub(r"```json\n?|```", "", raw).strip()
+            parsed = json.loads(cleaned)
+            return (parsed.get("positive_translated", text1), parsed.get("negative_translated", text2))
         except Exception as e:
-            return f"[Translate Fail!: {e}]"
+            print(f"[Translate Fail!: {e}]")
+            return (text1, text2)
 
-    def translate(self, positive_prompt, negative_prompt):
+    def translate(self, positive_prompt, negative_prompt, source_lang="zh"):
         config = load_config()
         if not config.get("api_key"):
             return ("[NO API Key]", "[NO FOUND API Key]")
 
-        translated_positive = self.gpt_translate(positive_prompt, config)
-        translated_negative = self.gpt_translate(negative_prompt, config)
+        translated_positive , translated_negative = self.llm_translate(positive_prompt, negative_prompt, config, source_lang)
         return (translated_positive, translated_negative)
 
 
@@ -86,4 +98,3 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Translate(LLM)": "Prompt翻訳(LLM)"
 }
-
