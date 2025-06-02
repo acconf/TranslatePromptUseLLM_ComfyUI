@@ -1,0 +1,10 @@
+{
+	"api_key": "YOUR_API_KEY",
+	"model": "gemini-2.0-flash",
+	"api_base": "https://generativelanguage.googleapis.com/v1beta/openai",
+	"target_lang": "en",
+	"system_prompt_zh": "你是一个专业的翻译助手，只返回翻译后的文本，不添加任何解释。",
+	"system_prompt_ja": "あなたは翻訳の専門家です。翻訳されたテキストのみを返し、説明は追加しません。",
+	"user_prompt_zh": "请将以下文本翻译成{target_lang}：\n{text}",
+	"user_prompt_ja": "以下のテキストを{target_lang}に翻訳してください：\n{text}"
+}
